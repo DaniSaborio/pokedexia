@@ -26,6 +26,21 @@ export const Colors = {
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
+/**
+ * Brand palette inspired by the Luxury Ball: obsidian black body, a gold
+ * trim/ring and a deep magenta band. Used for accents across both themes so
+ * the identity stays consistent regardless of light/dark mode.
+ */
+export const Brand = {
+  black: '#141318',
+  charcoal: '#211F26',
+  gold: '#D4AF37',
+  goldLight: '#F1D57A',
+  magenta: '#B0205E',
+  magentaDark: '#7A1642',
+  cream: '#F7EFE0',
+} as const;
+
 export const Fonts = Platform.select({
   ios: {
     /** iOS `UIFontDescriptorSystemDesignDefault` */

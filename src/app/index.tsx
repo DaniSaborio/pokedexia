@@ -1,98 +1,106 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import { useMemo, useState } from 'react';
+import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { PokemonCard } from '@/components/pokemon-card';
+import { PokemonDetail } from '@/components/pokemon-detail';
+import { Brand, MaxContentWidth, Spacing } from '@/constants/theme';
+import { MockPokemon, type Pokemon } from '@/data/pokemon';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+export default function PokedexScreen() {
+  const [query, setQuery] = useState('');
+  const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
 
-export default function HomeScreen() {
+  const filteredPokemon = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return MockPokemon;
+    return MockPokemon.filter((pokemon) => pokemon.name.toLowerCase().includes(normalizedQuery));
+  }, [query]);
+
+  if (selectedPokemon) {
+    return <PokemonDetail pokemon={selectedPokemon} onClose={() => setSelectedPokemon(null)} />;
+  }
+
   return (
-    <ThemedView style={styles.container}>
+    <View style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+        <View style={styles.header}>
+          <Text style={styles.title}>Pokédexia</Text>
+          <Text style={styles.subtitle}>Edición Luxury</Text>
+        </View>
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Buscar Pokémon..."
+          placeholderTextColor={Brand.gold}
+          style={styles.search}
+        />
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
+        <FlatList
+          data={filteredPokemon}
+          keyExtractor={(pokemon) => String(pokemon.id)}
+          numColumns={2}
+          columnWrapperStyle={styles.row}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => <PokemonCard pokemon={item} onPress={setSelectedPokemon} />}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>No se encontró ningún Pokémon con ese nombre.</Text>
+          }
+        />
       </SafeAreaView>
-    </ThemedView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
+    backgroundColor: Brand.black,
+    alignItems: 'center',
   },
   safeArea: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
+    width: '100%',
     maxWidth: MaxContentWidth,
+    paddingHorizontal: Spacing.three,
   },
-  heroSection: {
+  header: {
     alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+    paddingVertical: Spacing.three,
   },
   title: {
-    textAlign: 'center',
+    fontSize: 32,
+    fontWeight: '800',
+    color: Brand.gold,
   },
-  code: {
+  subtitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Brand.magenta,
     textTransform: 'uppercase',
+    letterSpacing: 2,
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
+  search: {
+    borderWidth: 1,
+    borderColor: Brand.gold,
     borderRadius: Spacing.four,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    color: Brand.cream,
+    backgroundColor: Brand.charcoal,
+    marginBottom: Spacing.three,
+  },
+  listContent: {
+    paddingBottom: Spacing.six,
+    gap: Spacing.three,
+  },
+  row: {
+    gap: Spacing.three,
+  },
+  emptyText: {
+    color: Brand.cream,
+    textAlign: 'center',
+    marginTop: Spacing.five,
   },
 });
