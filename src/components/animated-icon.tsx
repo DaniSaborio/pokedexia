@@ -1,12 +1,68 @@
-import { Image } from 'expo-image';
 import * as SplashScreen from 'expo-splash-screen';
 import { useState } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { Easing, Keyframe } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
-const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
-const DURATION = 600;
+import { LuxuryBallButton, LuxuryBallFlash, LuxuryBallHalf, LuxuryBallSize } from '@/components/luxury-ball';
+import { Brand } from '@/constants/theme';
+
+const DURATION = 1500;
+
+const overlayKeyframe = new Keyframe({
+  0: { opacity: 1 },
+  85: { opacity: 1 },
+  100: { opacity: 0, easing: Easing.out(Easing.quad) },
+});
+
+const entranceKeyframe = new Keyframe({
+  0: { transform: [{ translateY: -260 }, { scale: 0.6 }, { rotateZ: '0deg' }] },
+  35: {
+    transform: [{ translateY: 0 }, { scale: 1.08 }, { rotateZ: '0deg' }],
+    easing: Easing.out(Easing.back(1.6)),
+  },
+  45: { transform: [{ translateY: 0 }, { scale: 1 }, { rotateZ: '-8deg' }] },
+  52: { transform: [{ translateY: 0 }, { scale: 1 }, { rotateZ: '8deg' }] },
+  59: { transform: [{ translateY: 0 }, { scale: 1 }, { rotateZ: '-6deg' }] },
+  66: { transform: [{ translateY: 0 }, { scale: 1 }, { rotateZ: '0deg' }] },
+  100: { transform: [{ translateY: 0 }, { scale: 1 }, { rotateZ: '0deg' }] },
+});
+
+const topHalfKeyframe = new Keyframe({
+  0: { transform: [{ translateY: 0 }, { rotateZ: '0deg' }], opacity: 1 },
+  66: { transform: [{ translateY: 0 }, { rotateZ: '0deg' }], opacity: 1 },
+  100: {
+    transform: [{ translateY: -120 }, { rotateZ: '-25deg' }],
+    opacity: 0,
+    easing: Easing.out(Easing.quad),
+  },
+});
+
+const bottomHalfKeyframe = new Keyframe({
+  0: { transform: [{ translateY: 0 }, { rotateZ: '0deg' }], opacity: 1 },
+  66: { transform: [{ translateY: 0 }, { rotateZ: '0deg' }], opacity: 1 },
+  100: {
+    transform: [{ translateY: 120 }, { rotateZ: '25deg' }],
+    opacity: 0,
+    easing: Easing.out(Easing.quad),
+  },
+});
+
+const buttonKeyframe = new Keyframe({
+  0: { opacity: 1, transform: [{ scale: 1 }] },
+  66: { opacity: 1, transform: [{ scale: 1 }] },
+  72: { opacity: 1, transform: [{ scale: 1.3 }] },
+  80: { opacity: 0, transform: [{ scale: 0.4 }] },
+  100: { opacity: 0, transform: [{ scale: 0.4 }] },
+});
+
+const flashKeyframe = new Keyframe({
+  0: { opacity: 0, transform: [{ scale: 0.2 }] },
+  66: { opacity: 0, transform: [{ scale: 0.2 }] },
+  74: { opacity: 0.9, transform: [{ scale: 0.6 }] },
+  88: { opacity: 0, transform: [{ scale: 2.4 }], easing: Easing.out(Easing.quad) },
+  100: { opacity: 0, transform: [{ scale: 2.4 }] },
+});
 
 export function AnimatedSplashOverlay() {
   const [animate, setAnimate] = useState(false);
@@ -14,37 +70,31 @@ export function AnimatedSplashOverlay() {
 
   if (!visible) return null;
 
-  const splashKeyframe = new Keyframe({
-    0: {
-      transform: [{ scale: 1 }],
-      opacity: 1,
-    },
-    20: {
-      opacity: 1,
-    },
-    70: {
-      opacity: 0,
-      easing: Easing.elastic(0.7),
-    },
-    100: {
-      opacity: 0,
-      transform: [{ scale: 1 }],
-      easing: Easing.elastic(0.7),
-    },
-  });
-
-  const image = <Image style={styles.image} source={require('@/assets/images/expo-logo.png')} />;
-
   return animate ? (
     <Animated.View
-      entering={splashKeyframe.duration(DURATION).withCallback((finished) => {
+      entering={overlayKeyframe.duration(DURATION).withCallback((finished) => {
         'worklet';
         if (finished) {
           scheduleOnRN(setVisible, false);
         }
       })}
       style={styles.splashOverlay}>
-      {image}
+      <View style={styles.ballWrap}>
+        <Animated.View entering={entranceKeyframe.duration(DURATION)} style={StyleSheet.absoluteFill}>
+          <Animated.View entering={topHalfKeyframe.duration(DURATION)} style={StyleSheet.absoluteFill}>
+            <LuxuryBallHalf half="top" />
+          </Animated.View>
+          <Animated.View entering={bottomHalfKeyframe.duration(DURATION)} style={StyleSheet.absoluteFill}>
+            <LuxuryBallHalf half="bottom" />
+          </Animated.View>
+          <Animated.View entering={buttonKeyframe.duration(DURATION)} style={StyleSheet.absoluteFill}>
+            <LuxuryBallButton />
+          </Animated.View>
+        </Animated.View>
+        <Animated.View entering={flashKeyframe.duration(DURATION)} style={StyleSheet.absoluteFill}>
+          <LuxuryBallFlash />
+        </Animated.View>
+      </View>
     </Animated.View>
   ) : (
     <View
@@ -54,95 +104,25 @@ export function AnimatedSplashOverlay() {
         });
       }}
       style={styles.splashOverlay}>
-      {image}
-    </View>
-  );
-}
-
-const keyframe = new Keyframe({
-  0: {
-    transform: [{ scale: INITIAL_SCALE_FACTOR }],
-  },
-  100: {
-    transform: [{ scale: 1 }],
-    easing: Easing.elastic(0.7),
-  },
-});
-
-const logoKeyframe = new Keyframe({
-  0: {
-    transform: [{ scale: 1.3 }],
-    opacity: 0,
-  },
-  40: {
-    transform: [{ scale: 1.3 }],
-    opacity: 0,
-    easing: Easing.elastic(0.7),
-  },
-  100: {
-    opacity: 1,
-    transform: [{ scale: 1 }],
-    easing: Easing.elastic(0.7),
-  },
-});
-
-const glowKeyframe = new Keyframe({
-  0: {
-    transform: [{ rotateZ: '0deg' }],
-  },
-  100: {
-    transform: [{ rotateZ: '7200deg' }],
-  },
-});
-
-export function AnimatedIcon() {
-  return (
-    <View style={styles.iconContainer}>
-      <Animated.View entering={glowKeyframe.duration(60 * 1000 * 4)} style={styles.glow}>
-        <Image style={styles.glow} source={require('@/assets/images/logo-glow.png')} />
-      </Animated.View>
-
-      <Animated.View entering={keyframe.duration(DURATION)} style={styles.background} />
-      <Animated.View style={styles.imageContainer} entering={logoKeyframe.duration(DURATION)}>
-        <Image style={styles.image} source={require('@/assets/images/expo-logo.png')} />
-      </Animated.View>
+      <View style={styles.ballWrap}>
+        <LuxuryBallHalf half="top" />
+        <LuxuryBallHalf half="bottom" />
+        <LuxuryBallButton />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  imageContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  glow: {
-    width: 201,
-    height: 201,
-    position: 'absolute',
-  },
-  iconContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 128,
-    height: 128,
-    zIndex: 100,
-  },
-  image: {
-    width: 76,
-    height: 71,
-  },
-  background: {
-    borderRadius: 40,
-    experimental_backgroundImage: `linear-gradient(180deg, #3C9FFE, #0274DF)`,
-    width: 128,
-    height: 128,
-    position: 'absolute',
-  },
   splashOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: '#208AEF',
+    backgroundColor: Brand.black,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
+  },
+  ballWrap: {
+    width: LuxuryBallSize,
+    height: LuxuryBallSize,
   },
 });

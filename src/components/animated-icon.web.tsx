@@ -1,108 +1,112 @@
-import { Image } from 'expo-image';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { Keyframe, Easing } from 'react-native-reanimated';
+import Animated, { Easing, Keyframe } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
-import classes from './animated-icon.module.css';
-const DURATION = 300;
+import { LuxuryBallButton, LuxuryBallFlash, LuxuryBallHalf, LuxuryBallSize } from '@/components/luxury-ball';
+import { Brand } from '@/constants/theme';
+
+const DURATION = 1500;
+
+const overlayKeyframe = new Keyframe({
+  0: { opacity: 1 },
+  85: { opacity: 1 },
+  100: { opacity: 0, easing: Easing.out(Easing.quad) },
+});
+
+const entranceKeyframe = new Keyframe({
+  0: { transform: [{ translateY: -260 }, { scale: 0.6 }, { rotateZ: '0deg' }] },
+  35: {
+    transform: [{ translateY: 0 }, { scale: 1.08 }, { rotateZ: '0deg' }],
+    easing: Easing.out(Easing.back(1.6)),
+  },
+  45: { transform: [{ translateY: 0 }, { scale: 1 }, { rotateZ: '-8deg' }] },
+  52: { transform: [{ translateY: 0 }, { scale: 1 }, { rotateZ: '8deg' }] },
+  59: { transform: [{ translateY: 0 }, { scale: 1 }, { rotateZ: '-6deg' }] },
+  66: { transform: [{ translateY: 0 }, { scale: 1 }, { rotateZ: '0deg' }] },
+  100: { transform: [{ translateY: 0 }, { scale: 1 }, { rotateZ: '0deg' }] },
+});
+
+const topHalfKeyframe = new Keyframe({
+  0: { transform: [{ translateY: 0 }, { rotateZ: '0deg' }], opacity: 1 },
+  66: { transform: [{ translateY: 0 }, { rotateZ: '0deg' }], opacity: 1 },
+  100: {
+    transform: [{ translateY: -120 }, { rotateZ: '-25deg' }],
+    opacity: 0,
+    easing: Easing.out(Easing.quad),
+  },
+});
+
+const bottomHalfKeyframe = new Keyframe({
+  0: { transform: [{ translateY: 0 }, { rotateZ: '0deg' }], opacity: 1 },
+  66: { transform: [{ translateY: 0 }, { rotateZ: '0deg' }], opacity: 1 },
+  100: {
+    transform: [{ translateY: 120 }, { rotateZ: '25deg' }],
+    opacity: 0,
+    easing: Easing.out(Easing.quad),
+  },
+});
+
+const buttonKeyframe = new Keyframe({
+  0: { opacity: 1, transform: [{ scale: 1 }] },
+  66: { opacity: 1, transform: [{ scale: 1 }] },
+  72: { opacity: 1, transform: [{ scale: 1.3 }] },
+  80: { opacity: 0, transform: [{ scale: 0.4 }] },
+  100: { opacity: 0, transform: [{ scale: 0.4 }] },
+});
+
+const flashKeyframe = new Keyframe({
+  0: { opacity: 0, transform: [{ scale: 0.2 }] },
+  66: { opacity: 0, transform: [{ scale: 0.2 }] },
+  74: { opacity: 0.9, transform: [{ scale: 0.6 }] },
+  88: { opacity: 0, transform: [{ scale: 2.4 }], easing: Easing.out(Easing.quad) },
+  100: { opacity: 0, transform: [{ scale: 2.4 }] },
+});
 
 export function AnimatedSplashOverlay() {
-  return null;
-}
+  const [visible, setVisible] = useState(true);
 
-const keyframe = new Keyframe({
-  0: {
-    transform: [{ scale: 0 }],
-  },
-  60: {
-    transform: [{ scale: 1.2 }],
-    easing: Easing.elastic(1.2),
-  },
-  100: {
-    transform: [{ scale: 1 }],
-    easing: Easing.elastic(1.2),
-  },
-});
+  if (!visible) return null;
 
-const logoKeyframe = new Keyframe({
-  0: {
-    opacity: 0,
-  },
-  60: {
-    transform: [{ scale: 1.2 }],
-    opacity: 0,
-    easing: Easing.elastic(1.2),
-  },
-  100: {
-    transform: [{ scale: 1 }],
-    opacity: 1,
-    easing: Easing.elastic(1.2),
-  },
-});
-
-const glowKeyframe = new Keyframe({
-  0: {
-    transform: [{ rotateZ: '-180deg' }, { scale: 0.8 }],
-    opacity: 0,
-  },
-  [DURATION / 1000]: {
-    transform: [{ rotateZ: '0deg' }, { scale: 1 }],
-    opacity: 1,
-    easing: Easing.elastic(0.7),
-  },
-  100: {
-    transform: [{ rotateZ: '7200deg' }],
-  },
-});
-
-export function AnimatedIcon() {
   return (
-    <View style={styles.iconContainer}>
-      <Animated.View entering={glowKeyframe.duration(60 * 1000 * 4)} style={styles.glow}>
-        <Image style={styles.glow} source={require('@/assets/images/logo-glow.png')} />
-      </Animated.View>
-
-      <Animated.View style={styles.background} entering={keyframe.duration(DURATION)}>
-        <div className={classes.expoLogoBackground} />
-      </Animated.View>
-
-      <Animated.View style={styles.imageContainer} entering={logoKeyframe.duration(DURATION)}>
-        <Image style={styles.image} source={require('@/assets/images/expo-logo.png')} />
-      </Animated.View>
-    </View>
+    <Animated.View
+      entering={overlayKeyframe.duration(DURATION).withCallback((finished) => {
+        'worklet';
+        if (finished) {
+          scheduleOnRN(setVisible, false);
+        }
+      })}
+      style={styles.splashOverlay}>
+      <View style={styles.ballWrap}>
+        <Animated.View entering={entranceKeyframe.duration(DURATION)} style={StyleSheet.absoluteFill}>
+          <Animated.View entering={topHalfKeyframe.duration(DURATION)} style={StyleSheet.absoluteFill}>
+            <LuxuryBallHalf half="top" />
+          </Animated.View>
+          <Animated.View entering={bottomHalfKeyframe.duration(DURATION)} style={StyleSheet.absoluteFill}>
+            <LuxuryBallHalf half="bottom" />
+          </Animated.View>
+          <Animated.View entering={buttonKeyframe.duration(DURATION)} style={StyleSheet.absoluteFill}>
+            <LuxuryBallButton />
+          </Animated.View>
+        </Animated.View>
+        <Animated.View entering={flashKeyframe.duration(DURATION)} style={StyleSheet.absoluteFill}>
+          <LuxuryBallFlash />
+        </Animated.View>
+      </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  splashOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: Brand.black,
     alignItems: 'center',
-    width: '100%',
+    justifyContent: 'center',
     zIndex: 1000,
-    position: 'absolute',
-    top: 128 / 2 + 138,
   },
-  imageContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  glow: {
-    width: 201,
-    height: 201,
-    position: 'absolute',
-  },
-  iconContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 128,
-    height: 128,
-  },
-  image: {
-    position: 'absolute',
-    width: 76,
-    height: 71,
-  },
-  background: {
-    width: 128,
-    height: 128,
-    position: 'absolute',
+  ballWrap: {
+    width: LuxuryBallSize,
+    height: LuxuryBallSize,
   },
 });
