@@ -1,18 +1,32 @@
 import * as SplashScreen from 'expo-splash-screen';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, Keyframe } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { LuxuryBallButton, LuxuryBallFlash, LuxuryBallHalf, LuxuryBallSize } from '@/components/luxury-ball';
+import {
+  LuxuryBallButton,
+  LuxuryBallFlash,
+  LuxuryBallGlow,
+  LuxuryBallHalf,
+  LuxuryBallSize,
+  LuxuryBallSpark,
+} from '@/components/luxury-ball';
 import { Brand } from '@/constants/theme';
 
-const DURATION = 1500;
+const DURATION = 1900;
 
 const overlayKeyframe = new Keyframe({
   0: { opacity: 1 },
-  85: { opacity: 1 },
+  88: { opacity: 1 },
   100: { opacity: 0, easing: Easing.out(Easing.quad) },
+});
+
+const glowKeyframe = new Keyframe({
+  0: { opacity: 0, transform: [{ scale: 0.55 }] },
+  35: { opacity: 0.9, transform: [{ scale: 1.05 }], easing: Easing.out(Easing.quad) },
+  66: { opacity: 0.85, transform: [{ scale: 1 }] },
+  100: { opacity: 0, transform: [{ scale: 1.2 }], easing: Easing.out(Easing.quad) },
 });
 
 const entranceKeyframe = new Keyframe({
@@ -64,6 +78,29 @@ const flashKeyframe = new Keyframe({
   100: { opacity: 0, transform: [{ scale: 2.4 }] },
 });
 
+const sparkKeyframe = new Keyframe({
+  0: { opacity: 0, transform: [{ scale: 0 }, { rotateZ: '0deg' }] },
+  66: { opacity: 0, transform: [{ scale: 0 }, { rotateZ: '0deg' }] },
+  76: { opacity: 1, transform: [{ scale: 1 }, { rotateZ: '20deg' }], easing: Easing.out(Easing.quad) },
+  92: { opacity: 0, transform: [{ scale: 0.4 }, { rotateZ: '40deg' }], easing: Easing.out(Easing.quad) },
+  100: { opacity: 0, transform: [{ scale: 0.4 }, { rotateZ: '40deg' }] },
+});
+
+const wordmarkKeyframe = new Keyframe({
+  0: { opacity: 0, transform: [{ translateY: 14 }] },
+  48: { opacity: 0, transform: [{ translateY: 14 }] },
+  62: { opacity: 1, transform: [{ translateY: 0 }], easing: Easing.out(Easing.quad) },
+  88: { opacity: 1, transform: [{ translateY: 0 }] },
+  100: { opacity: 0, transform: [{ translateY: -6 }], easing: Easing.out(Easing.quad) },
+});
+
+const SPARK_POSITIONS = [
+  { top: 4, left: -6, size: 18 },
+  { top: 10, right: -10, size: 14 },
+  { bottom: 8, left: -12, size: 12 },
+  { bottom: 0, right: 0, size: 16 },
+];
+
 export function AnimatedSplashOverlay() {
   const [animate, setAnimate] = useState(false);
   const [visible, setVisible] = useState(true);
@@ -79,6 +116,10 @@ export function AnimatedSplashOverlay() {
         }
       })}
       style={styles.splashOverlay}>
+      <Animated.View entering={glowKeyframe.duration(DURATION)} style={styles.glowWrap}>
+        <LuxuryBallGlow />
+      </Animated.View>
+
       <View style={styles.ballWrap}>
         <Animated.View entering={entranceKeyframe.duration(DURATION)} style={StyleSheet.absoluteFill}>
           <Animated.View entering={topHalfKeyframe.duration(DURATION)} style={StyleSheet.absoluteFill}>
@@ -94,7 +135,20 @@ export function AnimatedSplashOverlay() {
         <Animated.View entering={flashKeyframe.duration(DURATION)} style={StyleSheet.absoluteFill}>
           <LuxuryBallFlash />
         </Animated.View>
+        {SPARK_POSITIONS.map((position, index) => (
+          <Animated.View
+            key={index}
+            entering={sparkKeyframe.duration(DURATION)}
+            style={[styles.spark, position]}>
+            <LuxuryBallSpark size={position.size} />
+          </Animated.View>
+        ))}
       </View>
+
+      <Animated.View entering={wordmarkKeyframe.duration(DURATION)} style={styles.wordmark}>
+        <Text style={styles.title}>Pokédexia</Text>
+        <Text style={styles.subtitle}>Edición Luxury</Text>
+      </Animated.View>
     </Animated.View>
   ) : (
     <View
@@ -121,8 +175,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 1000,
   },
+  glowWrap: {
+    position: 'absolute',
+    width: LuxuryBallSize * 2.4,
+    height: LuxuryBallSize * 2.4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   ballWrap: {
     width: LuxuryBallSize,
     height: LuxuryBallSize,
+  },
+  spark: {
+    position: 'absolute',
+  },
+  wordmark: {
+    position: 'absolute',
+    top: '58%',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: Brand.gold,
+    letterSpacing: 0.5,
+  },
+  subtitle: {
+    marginTop: 2,
+    fontSize: 12,
+    fontWeight: '600',
+    color: Brand.magenta,
+    textTransform: 'uppercase',
+    letterSpacing: 3,
   },
 });

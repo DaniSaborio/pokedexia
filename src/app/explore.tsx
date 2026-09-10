@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,7 +10,8 @@ import {
   getComboDefenseMultipliers,
   type PokemonType,
 } from '@/constants/pokemon-types';
-import { Brand, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Brand, FloatingNavInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { showNav, useHideNavOnScroll } from '@/hooks/nav-visibility';
 
 const WeaknessGroups = [
   { key: 4, label: 'Débil x4', color: '#E4482E' },
@@ -21,42 +22,57 @@ const WeaknessGroups = [
 ] as const;
 
 export default function TypesScreen() {
-  const [selectedType, setSelectedType] = useState<PokemonType>('electric');
-  const [secondaryType, setSecondaryType] = useState<PokemonType | null>(null);
+  const [selectedTypes, setSelectedTypes] = useState<PokemonType[]>(['electric']);
 
-  const comboTypes = useMemo(
-    () => (secondaryType ? [selectedType, secondaryType] : [selectedType]),
-    [selectedType, secondaryType]
-  );
+  const toggleType = (type: PokemonType) => {
+    setSelectedTypes((prev) => {
+      if (prev.includes(type)) {
+        if (prev.length === 1) return prev;
+        return prev.filter((t) => t !== type);
+      }
+      if (prev.length < 2) return [...prev, type];
+      return [prev[1], type];
+    });
+  };
 
   const defenseMultipliers = useMemo(
-    () => getComboDefenseMultipliers(comboTypes),
-    [comboTypes]
+    () => getComboDefenseMultipliers(selectedTypes),
+    [selectedTypes]
   );
 
   const grouped = useMemo(() => {
     const groups: Record<number, PokemonType[]> = { 4: [], 2: [], 0.5: [], 0.25: [], 0: [] };
     for (const type of AllPokemonTypes) {
-      if (comboTypes.includes(type)) continue;
+      if (selectedTypes.includes(type)) continue;
       const multiplier = defenseMultipliers[type];
       if (multiplier in groups) groups[multiplier].push(type);
     }
     return groups;
-  }, [defenseMultipliers, comboTypes]);
+  }, [defenseMultipliers, selectedTypes]);
+
+  const handleScroll = useHideNavOnScroll();
+
+  useEffect(() => {
+    showNav();
+  }, []);
 
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}>
           <View style={styles.header}>
             <Text style={styles.title}>Tabla de tipos</Text>
-            <Text style={styles.subtitle}>Elige un tipo para ver su efectividad</Text>
+            <Text style={styles.subtitle}>Elige hasta 2 tipos para ver su efectividad</Text>
           </View>
 
           <View style={styles.grid}>
             {AllPokemonTypes.map((type) => (
-              <Pressable key={type} onPress={() => setSelectedType(type)}>
-                <View style={[styles.chipWrapper, selectedType === type && styles.chipSelected]}>
+              <Pressable key={type} onPress={() => toggleType(type)}>
+                <View
+                  style={[styles.chipWrapper, selectedTypes.includes(type) && styles.chipSelected]}>
                   <TypeBadge type={type} />
                 </View>
               </Pressable>
@@ -64,35 +80,15 @@ export default function TypesScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Combinar con un segundo tipo</Text>
-            <View style={styles.typesRow}>
-              <Pressable onPress={() => setSecondaryType(null)}>
-                <View style={[styles.noneChip, !secondaryType && styles.chipSelected]}>
-                  <Text style={styles.noneChipText}>Ninguno</Text>
-                </View>
-              </Pressable>
-              {AllPokemonTypes.filter((type) => type !== selectedType).map((type) => (
-                <Pressable
-                  key={type}
-                  onPress={() => setSecondaryType(type === secondaryType ? null : type)}>
-                  <View
-                    style={[styles.chipWrapper, secondaryType === type && styles.chipSelected]}>
-                    <TypeBadge type={type} small />
-                  </View>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.section}>
             <View style={styles.comboHeader}>
-              <TypeBadge type={selectedType} />
-              {secondaryType && <TypeBadge type={secondaryType} />}
+              {selectedTypes.map((type) => (
+                <TypeBadge key={type} type={type} />
+              ))}
             </View>
             <Text style={styles.sectionSubtitle}>
               Fortalezas y debilidades defensivas de esta combinación
             </Text>
-            <TypeMatchupGraph types={comboTypes} />
+            <TypeMatchupGraph types={selectedTypes} />
           </View>
 
           {WeaknessGroups.map(
@@ -127,11 +123,12 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: Spacing.three,
-    paddingBottom: Spacing.six,
+    paddingBottom: Spacing.six + FloatingNavInset,
   },
   header: {
     alignItems: 'center',
-    paddingVertical: Spacing.four,
+    paddingTop: Spacing.four,
+    paddingBottom: Spacing.four,
   },
   title: {
     color: Brand.gold,
@@ -187,20 +184,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.two,
     marginBottom: Spacing.one,
-  },
-  noneChip: {
-    borderRadius: Spacing.four,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two - 2,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    backgroundColor: Brand.black,
-    justifyContent: 'center',
-  },
-  noneChipText: {
-    color: Brand.cream,
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
   },
 });

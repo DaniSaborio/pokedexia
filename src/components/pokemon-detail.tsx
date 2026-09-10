@@ -1,11 +1,16 @@
 import { Image } from 'expo-image';
+import { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PokeballIcon, type PokeballIconHandle } from '@/components/pokeball-icon';
 import { StatBar } from '@/components/stat-bar';
 import { TypeBadge } from '@/components/type-badge';
-import { Brand, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Brand, FloatingNavInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import type { Pokemon } from '@/data/pokemon';
+import { showNav, useHideNavOnScroll } from '@/hooks/nav-visibility';
+
+const CLOSE_DELAY_MS = 200;
 
 type PokemonDetailProps = {
   pokemon: Pokemon;
@@ -13,12 +18,29 @@ type PokemonDetailProps = {
 };
 
 export function PokemonDetail({ pokemon, onClose }: PokemonDetailProps) {
+  const pokeballRef = useRef<PokeballIconHandle>(null);
+
+  const handleClose = () => {
+    pokeballRef.current?.pop();
+    setTimeout(onClose, CLOSE_DELAY_MS);
+  };
+
+  const handleScroll = useHideNavOnScroll();
+
+  useEffect(() => {
+    showNav();
+  }, []);
+
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Pressable onPress={onClose} style={styles.backButton}>
-            <Text style={styles.backLabel}>‹ Volver</Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}>
+          <Pressable onPress={handleClose} style={styles.backButton}>
+            <PokeballIcon ref={pokeballRef} size={24} />
+            <Text style={styles.backLabel}>Volver</Text>
           </Pressable>
 
           <View style={styles.hero}>
@@ -94,9 +116,12 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: Spacing.three,
-    paddingBottom: Spacing.six,
+    paddingBottom: Spacing.six + FloatingNavInset,
   },
   backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
     paddingVertical: Spacing.three,
     alignSelf: 'flex-start',
   },

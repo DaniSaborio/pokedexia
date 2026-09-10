@@ -76,5 +76,6 @@ export const Spacing = {
   six: 64,
 } as const;
 
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
+/** Clears the floating radial nav ball, which overlays the top of the screen instead of pushing content down. */
+export const FloatingNavInset = 78;
 export const MaxContentWidth = 800;
