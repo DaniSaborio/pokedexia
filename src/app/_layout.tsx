@@ -1,16 +1,35 @@
-import { DarkTheme, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
+// app/_layout.tsx
+import migrations from "@/drizzle/migrations.js";
+import { drizzle } from "drizzle-orm/expo-sqlite";
+import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
+import { Stack } from "expo-router";
+import { SQLiteProvider, openDatabaseSync } from "expo-sqlite";
+import { Suspense } from "react";
+import { ActivityIndicator } from "react-native";
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+export const DATABASE_NAME = "pokedexia";
 
-SplashScreen.preventAutoHideAsync();
+export default function RootLayout() {
+  const expoDb = openDatabaseSync(DATABASE_NAME);
+  const db = drizzle(expoDb);
+  const { success, error } = useMigrations(db, migrations);
 
-export default function TabLayout() {
+  if (error) {
+    console.error("Migration error:", error);
+    return null;
+  }
+
   return (
-    <ThemeProvider value={DarkTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <Suspense fallback={<ActivityIndicator size="large" />}>
+      <SQLiteProvider
+        databaseName={DATABASE_NAME}
+        options={{ enableChangeListener: true }}
+        useSuspense
+      >
+        <Stack>
+          <Stack.Screen name="index" options={{ title: "Pokédex" }} />
+        </Stack>
+      </SQLiteProvider>
+    </Suspense>
   );
 }
